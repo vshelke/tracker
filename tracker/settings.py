@@ -27,6 +27,9 @@ DEBUG = True
 
 ALLOWED_HOSTS = []
 
+API_SCORE_THRESHOLD = 90
+API_AUTH = '?client_id=676cb6d3e33c3bed8831&client_secret=0e1b5515a3e2b8e52b470616f28249eababe9718'
+API_HOST = 'https://api.github.com/search/users' + API_AUTH + '&q='
 
 # Application definition
 
@@ -78,10 +81,10 @@ WSGI_APPLICATION = 'tracker.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'd9ide0dm9qaetc',                      
-        'USER': 'tjmortjqtgdaef',
-        'PASSWORD': '56b333d474f99ae71fb91c9595dc3f8cc901a256d4717afcb07cc1641ab31e6b',
-        'HOST': 'ec2-79-125-127-60.eu-west-1.compute.amazonaws.com',
+        'NAME': 'd13h4uhar44f08',                      
+        'USER': 'sdrjfvugcsanar',
+        'PASSWORD': '4ef8d09c37daef4e8cda2015dc81d56eac82f02d81e2736508410cfa1712f2d0',
+        'HOST': 'ec2-54-217-250-0.eu-west-1.compute.amazonaws.com',
         'PORT': '5432',
     }
 }

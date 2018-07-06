@@ -4,4 +4,4 @@ from searchapi.models import User
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ('uid', 'login', 'thumbnail', 'fullname', 'email', 'location', 'created', 'followers', 'languages' )
+        fields = ('uid', 'login', 'thumbnail', 'user_type', 'fullname', 'email', 'location', 'created', 'followers', 'languages' )

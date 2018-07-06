@@ -4,13 +4,16 @@ from rest_framework.parsers import JSONParser
 from searchapi.models import User
 from searchapi.serializers import UserSerializer
 import requests, json
+from django.conf import settings
+import dateutil.parser
 
-auth = '?client_id=676cb6d3e33c3bed8831&client_secret=0e1b5515a3e2b8e52b470616f28249eababe9718'
-url = 'https://api.github.com/search/users' + auth + '&q='
-# Create your views here.
-def get_user_details(raw):
-    r_user = json.loads(requests.get(raw['url'] + auth).text)
-    r_repo = json.loads(requests.get(raw['repos_url'] + auth).text)
+API_SCORE_THRESHOLD = settings.API_SCORE_THRESHOLD
+API_AUTH = settings.API_AUTH
+API_HOST = settings.API_HOST
+
+def filter_user_details(raw):
+    r_user = json.loads(requests.get(raw['url'] + API_AUTH).text)
+    r_repo = json.loads(requests.get(raw['repos_url'] + API_AUTH).text)
     user = {}
     repos = []
     user['uid'] = raw['id']
@@ -20,14 +23,14 @@ def get_user_details(raw):
     user['fullname'] = r_user['name']
     user['email'] = r_user['email']
     user['location'] = r_user['location']
-    user['created'] = r_user['created_at']
+    user['created'] = dateutil.parser.parse(r_user['created_at'])
     user['followers'] = r_user['followers']
     user['languages'] = []
     for i in r_repo:
         user['languages'].append(i['language'])
     return user
 
-def query_parser(q):
+def search_db(q):
     tokens = q.split(' ')
     query = ''
     filters = []
@@ -46,22 +49,37 @@ def query_parser(q):
             filter_query['languages__in'] = filter[1]
         elif filter[0] == 'in' and not query == '':
             filter_query[filter[1] + '__icontains'] = query
-        # elif filter[0] == 'repos':
-        #     if filter[1].startswith('>')
-        # elif filter[0] == 'created':
-        # elif filter[0] == 'followers':
-    return User.objects.filter(**filter_query)
+        # add filters for repos, created and followers
+    if not query == '':
+        filter_query['login__icontains'] = query
+    res = User.objects.filter(**filter_query)
+    return res
+
+def search_github(q):
+    r = requests.get(API_HOST + q)
+    data = json.loads(r.text)
+    res = []
+    for i in data['items']:
+        if i['score'] > API_SCORE_THRESHOLD:
+            user = filter_user_details(i)
+            res.append(user)
+            u = UserSerializer(data=user)
+            if u.is_valid():
+                print ('here')
+                u.save()
+    return res
 
 def index(request):
     q = request.GET.get('q', '')
-    return HttpResponse(query_parser(q))
+    db_res = search_db(q)
+    if db_res:
+        serializer = UserSerializer(db_res, many=True)
+        return JsonResponse(serializer.data, safe=False)
+    else:
+        api_res = search_github(q)
+        return JsonResponse(api_res, safe=False)
 
-    # r = requests.get(url + q)
-    # data = json.loads(r.text)
-    # res = []
-    # for i in data['items']:
-    #     user = get_user_details(i)
-    #     res.append(user)
-    #     u = User(**user)
-    #     u.save()
-    # return JsonResponse(res, safe=False)
+def fetch_all(request):
+    res = User.objects.all()
+    serialised = UserSerializer(res, many=True)
+    return JsonResponse(serialised.data, safe=False)
